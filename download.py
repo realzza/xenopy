@@ -83,45 +83,46 @@ def download(filt):
         data = jsonfile.read()
     data = json.loads(data)
     page_num = data['numPages']
+    
+    # combine multiple pages for multiprocessing
+    if page_num > 1:
+        for i in range(2, page_num+1):
+            with open(path + '/page' + str(i) + ".json", 'r') as jsonfile:
+                new_data = json.loads(jsonfile.read())
+                data['recordings'] += new_data['recordings']
     print("Found " + str(data['numRecordings']) + " recordings for given query, downloading...") 
-    while page < page_num + 1:
+    
+    for i in tqdm(range(len(data['recordings'])), desc="downloading"):
+        url = data['recordings'][i]['file']
+        # redirect url and update real url
+        re_url = requests.get(url, allow_redirects=True).url
+        name = (data['recordings'][i]['en']).replace(' ', '')
+        track_id = data['recordings'][i]['id']
 
-        for i in tqdm(range(len((data['recordings']))), desc="downloading"):
-#             url = 'http:' + data['recordings'][i]['file']
-            url = data['recordings'][i]['file']
-            # redirect url and update real url
-            re_url = requests.get(url, allow_redirects=True).url
-            name = (data['recordings'][i]['en']).replace(' ', '')
-            track_id = data['recordings'][i]['id']
+        # Keep track of the most recently downloaded file
+        recent = open(path + "/in_progress.txt", "w")
+        recent.write(str(track_id))
+        recent.write("\n")
+        recent.close()
 
-            # Keep track of the most recently downloaded file
-            recent = open(path + "/in_progress.txt", "w")
-            recent.write(str(track_id))
-            recent.write("\n")
-            recent.close()
+        audio_path = 'dataset/audio/' + name + '/'
+        audio_file = str(track_id) + '.mp3'
 
-            audio_path = 'dataset/audio/' + name + '/'
-            audio_file = str(track_id) + '.mp3'
-
-            # If the track has been included in the progress files, it can be corrupt and must be redownloaded regardless
-            if int(track_id) in redown:
-                print("File " + str(track_id) + ".mp3 must be redownloaded since it was not completed during a previous query.")
-                print("Downloading " + str(track_id) + ".mp3")
-                request.urlretrieve(url, audio_path + audio_file)
-                continue
-
-            if not os.path.exists(audio_path):
-                os.makedirs(audio_path)
-
-            # If the file exists in the directory, we will skip it
-            if os.path.exists(audio_path + audio_file):
-#                 print("File " + str(track_id) + ".mp3 is already present. Moving on to the next recording...")
-                continue
-
-#             print("Downloading " + str(track_id) + ".mp3...")
+        # If the track has been included in the progress files, it can be corrupt and must be redownloaded regardless
+        if int(track_id) in redown:
+            print("File " + str(track_id) + ".mp3 must be redownloaded since it was not completed during a previous query.")
+            print("Downloading " + str(track_id) + ".mp3")
             request.urlretrieve(url, audio_path + audio_file)
+            continue
 
-        page += 1
+        if not os.path.exists(audio_path):
+            os.makedirs(audio_path)
+
+        # If the file exists in the directory, we will skip it
+        if os.path.exists(audio_path + audio_file):
+            continue
+
+        request.urlretrieve(url, audio_path + audio_file)
 
         # If the method has completed successfully, then we can delete the in_progress file
         os.remove(path + "/in_progress.txt")
