@@ -90,6 +90,7 @@ def download(filt):
             with open(path + '/page' + str(i) + ".json", 'r') as jsonfile:
                 new_data = json.loads(jsonfile.read())
                 data['recordings'] += new_data['recordings']
+                
     print("Found " + str(data['numRecordings']) + " recordings for given query, downloading...") 
     
     for i in tqdm(range(len(data['recordings'])), desc="downloading"):
