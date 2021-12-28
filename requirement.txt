@@ -1,0 +1,4 @@
+requests
+argparse
+tqdm
+urllib
