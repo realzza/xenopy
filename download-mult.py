@@ -11,7 +11,7 @@ def parse_args():
     desc="download bird audios"
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('--name', type=str, required=True, help="[1] name of one bird species; [2] file of bird species spaced by '\\n' ")
-    parser.add_argument('--process-ratio', type=float, default=0.8, help="float[0~1], define cpu utilities in downloading audios")
+    parser.add_argument('--process-ratio', type=float, default=0.8, help="float[0~1], define cpu utilities in downloading audios [default: 0.8]")
     return parser.parse_args()
 
 def metadata(filt):
