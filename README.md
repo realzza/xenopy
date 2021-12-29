@@ -1,5 +1,5 @@
 # birdData
-BirdData is a python wrapper for [Xeno-canto API 2.0](https://xeno-canto.org/article/153). Enables user to download bird data with one command line. BirdData is rebuilt upon [xeno-canto-py](https://github.com/ntivirikin/xeno-canto-py), support multithreading download.
+BirdData is a python wrapper for [Xeno-canto API 2.0](https://xeno-canto.org/article/153). Enables user to download bird data with one command line. BirdData supports multithreading download.
 
 ## Environment
 Download repo to local:
