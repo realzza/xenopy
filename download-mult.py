@@ -29,25 +29,28 @@ def metadata(filt):
     # Overwrite metadata query folder 
     for path in paths:
         if not os.path.exists(path):
-            os.makedirs(path)
+            os.makedirs(path, exist_ok=True)
 
     # Save all pages of the JSON response    
-    for fu in filt_url:
+    for fu in tqdm(filt_url, desc="retrieving metadata"):
         path = 'dataset/metadata/' + fu.replace('%20','')
         page, page_num = 1, 1
         while page < page_num + 1:
             url = 'https://www.xeno-canto.org/api/2/recordings?query={0}&page={1}'.format(fu, page)
-            print(url)
             try:
                 r = request.urlopen(url)
             except error.HTTPError as e:
                 print('An error has occurred: ' + str(e))
-                exit()
-            print("Downloading metadate page " + str(page) + "...")
+                print('Bad filter url: %s'%fu)
+                break
+#             print("Downloading metadate page " + str(page) + "...")
             data = json.loads(r.read().decode('UTF-8'))
             filename = path + '/page' + str(page) + '.json'
             with open(filename, 'w') as saved:
                 json.dump(data, saved)
+            # restrict recording number to 1500 recordings/species
+#             page_num = min(3, data['numPages'])
+            # no restrict
             page_num = data['numPages']
             page += 1
 
@@ -60,6 +63,7 @@ def listdir_nohidden(path):
             yield f
 
 def download(pid, pTotal, metadata_paths):
+    isFirst = True
     
     all_recordings = []
 
@@ -86,9 +90,9 @@ def download(pid, pTotal, metadata_paths):
             bird_name = data['recordings'][0]['en'].replace(' ','')
             audio_dir = 'dataset/audio/' + bird_name
             if not os.path.exists(audio_dir):
-                os.makedirs(audio_dir)
+                os.makedirs(audio_dir, exist_ok=True)
         all_recordings += data['recordings']
-        page_num = data['numPages']
+        page_num = min(3, data['numPages'])
 
         # combine multiple pages for multiprocessing
         if page_num > 1:
@@ -106,10 +110,13 @@ def download(pid, pTotal, metadata_paths):
     else:
         all_recordings = all_recordings[portion*pid: portion*(pid+1)]
     
-    for curr_rec in tqdm(all_recordings, desc="process %d"%pid):
+    for curr_rec in tqdm(all_recordings, desc="process %d"%os.getpid()):
+        if isFirst:
+            with open('kill.sh','a') as f:
+                f.write('kill -9 %d\n'%os.getpid())
+            isFirst = False
+            
         url = curr_rec['file']
-        # redirect url and update real url
-        re_url = requests.get(url, allow_redirects=True).url
         name = (curr_rec['en']).replace(' ', '')
         track_id = curr_rec['id']
 
@@ -124,16 +131,27 @@ def download(pid, pTotal, metadata_paths):
             continue
 
         if not os.path.exists(audio_path):
-            os.makedirs(audio_path)
+            os.makedirs(audio_path, exist_ok=True)
 
         # If the file exists in the directory, we will skip it
         if os.path.exists(audio_path + audio_file):
             continue
 
-        request.urlretrieve(url, audio_path + audio_file)
+        try:
+            request.urlretrieve(url, audio_path + audio_file)
+        except:
+            if url:
+                print('Bad url: %s'%url)
+                with open('bad_urls.txt','a') as f:
+                    f.write(url+'\n')
 
         
 if __name__ == '__main__':
+    with open('kill.sh','w') as f:
+        f.write('')
+    
+    with open('bad_urls.txt','w') as f:
+        f.write('')
     
     args = parse_args()
     isFile = os.path.isfile(args.name)
