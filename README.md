@@ -1,5 +1,5 @@
 # birdData
-<p align="center">
+<p>
     <a href="https://github.com/realzza/birdData/stargazers" alt="stars">
         <img src="https://img.shields.io/github/stars/realzza/birdData?color=orange&style=plastic" /></a>
     <a href="https://zhuanlan.zhihu.com/p/452368276" alt="stars">
