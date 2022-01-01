@@ -1,4 +1,10 @@
 # birdData
+<p align="center">
+    <a href="https://github.com/realzza/birdData/stargazers" alt="stars">
+        <img src="https://img.shields.io/github/stars/realzza/birdData?color=orange&style=plastic" /></a>
+    <a href="https://zhuanlan.zhihu.com/p/452368276" alt="stars">
+        <img src="https://img.shields.io/badge/zhihu-document-blue?style=plastic" /></a>
+</p>
 BirdData is a python wrapper for [Xeno-canto API 2.0](https://xeno-canto.org/article/153). Enables user to download bird data with one command line. BirdData supports multithreading download.
 
 ## Environment
