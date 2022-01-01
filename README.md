@@ -58,14 +58,39 @@ optional arguments:
                         float[0~1], define cpu utilities in downloading audios
                         [default: 0.8]
 ```
-#### Killing multiprocess
+### Kill multiprocess
 It would be hard to kill multiprocess programs manually. `download-mult.py` has a backdoor for this concern: it will automatically generate a `kill.sh` after downloading started. Kill program by
 ```
 bash kill.sh
 ```
 
-#### Badcase backup
+### Badcase backup
 Find download failure record at `bad_urls.txt` so that you can redownload afterwards if necessary.
+
+## Align Dataset
+The bird data you download is in `.mp3` format, unsupported by lightweight feature-extracting libraries such as [`soundfile`](https://github.com/bastibe/python-soundfile) and [`audiofile`](https://github.com/audeering/audiofile) ([`librosa`](https://github.com/librosa/librosa) is terribly slow compared to these two). Transform unextractable `.mp3` into extractable `.wav` by `alignDataset-mult.py` script.
+```python
+python alignDataset-mult.py --dataDir dataset/audio --outDir ./wavs --process 24 
+```
+### Usage
+```
+usage: alignDataset-mult.py [-h] [--dataDir DATADIR] [--outDir OUTDIR]
+                            [--process PROCESS]
+
+align smaplerate of dataset
+
+optional arguments:
+  -h, --help         show this help message and exit
+  --dataDir DATADIR  path to the input dir
+  --outDir OUTDIR    path to the output dir
+  --process PROCESS  number of process running
+```
+### Kill multiprocess
+```
+bash kill_align.sh
+```
+### Bad transformation backup
+Find transformation failures at `bad_aligns.txt`
 
 ## To-do
 - [x] [12.29] multiprocess download
