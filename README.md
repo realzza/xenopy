@@ -11,7 +11,7 @@ Set up environment:
 pip install -r requirement.txt
 ```
 
-## Usage
+## Download
 ### Single-thread
 Download audio data for one bird species. Use ***scientific name*** starting with **lowercase**. e.g, *cettia cetti*.
 ```python
@@ -35,6 +35,7 @@ optional arguments:
                by '\n'
 ```
 ### Multi-thread
+#### Usage
 Speed up downloading using multiple threads.
 ```python
 python download-mult.py --name "cettia cetti" --process-ratio 0.6
@@ -57,9 +58,19 @@ optional arguments:
                         float[0~1], define cpu utilities in downloading audios
                         [default: 0.8]
 ```
+#### Killing multiprocess
+It would be hard to kill multiprocess programs manually. `download-mult.py` has a backdoor for this concern: it will automatically generate a `kill.sh` after downloading started. Kill program by
+```
+bash kill.sh
+```
+
+#### Badcase backup
+Find download failure record at `bad_urls.txt` so that you can redownload afterwards if necessary.
 
 ## To-do
 - [x] [12.29] multiprocess download
+- [x] [1.1] Automated killing script for multiprocess program
+- [x] [1.1] Bad url backup for trace back
 - [ ] define sample rate prior to download
 
 ## Contact
