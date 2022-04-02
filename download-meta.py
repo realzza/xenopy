@@ -10,21 +10,28 @@ from multiprocessing import Process
 def parse_args():
     desc="download bird audios"
     parser = argparse.ArgumentParser(description=desc)
-    parser.add_argument('--name', type=str, required=True, help="[1] name of one bird species; [2] file of bird species spaced by '\\n' ")
-    parser.add_argument('--cnt', type=str, default=None, help="country code. refer to `https://xeno-canto.org/help/search` for more details in search query")
+    # parser.add_argument('--name', type=str, default=None, help="[1] name of one bird species; [2] file of bird species spaced by '\\n' ")
+    # parser.add_argument('--query', type=str, default=None, help="metadata query. refer to `https://xeno-canto.org/help/search` for more details in search query")
+    parser.add_argument('--gen', type=str, default=None, help="genus")
+    parser.add_argument('--ssp', type=str, default=None, help="subspecies")
+    parser.add_argument('--cnt', type=str, default=None, help="country")
+    parser.add_argument('--type', type=str, default=None, help="type")
+    parser.add_argument('--rmk', type=str, default=None, help="remark")
+    parser.add_argument('--lat', type=str, default=None, help="latitude")
+    parser.add_argument('--lon', type=str, default=None, help="longtitude")
+    parser.add_argument('--loc', type=str, default=None, help="location")
+    parser.add_argument('--box', type=str, default=None, help="box:LAT_MIN,LON_MIN,LAT_MAX,LON_MAX")
+    parser.add_argument('--area', type=str, default=None, help="Continent")
+    parser.add_argument('--since', type=str, default=None, help="e.g. since:2012-11-09")
+    parser.add_argument('--year', type=str, default=None, help="year")
+    parser.add_argument('--month', type=str, default=None, help="month")
     parser.add_argument('--output', type=str, default="dataset/metadata/", help="directory to output directory. default: `dataset/metadata/`")
     return parser.parse_args()
 
-def metadata(filt, output_dir, CNT):
-    filt_path = list()
-    filt_url = list()
+def metadata(qry, output_dir):
+    filt_path = [qry.replace(' ', '%20')]
+    filt_url = [qry]
     print("Retrieving metadata...")
-
-    # Scrubbing input for file name and url
-    for f in filt:
-        filt_url.append(f.replace(' ', '%20'))
-        print(filt_url)
-        filt_path.append((f.replace(' ', '')).replace("\"",""))
 
     paths = [output_dir + pa for pa in filt_path]
 
@@ -36,14 +43,11 @@ def metadata(filt, output_dir, CNT):
     # Save all pages of the JSON response    
     for fu in tqdm(filt_url, desc="retrieving metadata"):
         path = output_dir + fu.replace('%20','')
-        print(path)
         page, page_num = 1, 1
         while page < page_num + 1:
-            if not CNT:
-                url = 'https://www.xeno-canto.org/api/2/recordings?query={0}&page={1}'.format(fu, page)
-            else:
-                url = 'https://www.xeno-canto.org/api/2/recordings?query={0}%20{1}&page={2}'.format(fu, CNT, page)
+            url = 'https://www.xeno-canto.org/api/2/recordings?query={0}&page={1}'.format(fu, page)
             try:
+                print(url)
                 r = request.urlopen(url)
             except error.HTTPError as e:
                 print('An error has occurred: ' + str(e))
@@ -66,12 +70,10 @@ def metadata(filt, output_dir, CNT):
 if __name__ == '__main__':
     
     args = parse_args()
-    isFile = os.path.isfile(args.name)
-    if isFile:
-        with open(args.name, 'r') as f:
-            all_birds = [n.lower() for n in f.read().split('\n') if n]
-    else:
-        all_birds = [args.name.lower()+'&cnt:'+args.cnt]
+    query_options = {k:v for k,v in vars(args).items() if v and k != 'output'}
+    assert query_options, "empty query, please add query options"
+    query = '%20'.join(["%s:%s"%(k,v) for k,v in query_options.items()])
+    print(query)
         
     # retrieve metadata
-    metadata_path = metadata(all_birds, args.output, args.cnt)
+    metadata_path = metadata(query, args.output)
