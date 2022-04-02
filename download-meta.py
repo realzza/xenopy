@@ -38,8 +38,8 @@ def metadata(qry, output_dir):
     # Overwrite metadata query folder 
     for path in paths:
         if not os.path.exists(path):
-            os.makedirs(path, exist_ok=True)
-
+            os.makedirs(path.replace("%20",""), exist_ok=True)
+            
     # Save all pages of the JSON response    
     for fu in tqdm(filt_url, desc="retrieving metadata"):
         path = output_dir + fu.replace('%20','')
@@ -76,4 +76,4 @@ if __name__ == '__main__':
     print(query)
         
     # retrieve metadata
-    metadata_path = metadata(query, args.output)
+    metadata_path = metadata(query, args.output.rstrip('/')+'/')
