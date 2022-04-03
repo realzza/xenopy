@@ -11,6 +11,7 @@ def parse_args():
     desc="download bird audios"
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('--name', type=str, required=True, help="[1] name of one bird species; [2] file of bird species spaced by '\\n' ")
+    parser.add_argument('--time-limit', type=float, default=15, help="length of downloaded audio of each birds")
     parser.add_argument('--process-ratio', type=float, default=0.8, help="float[0~1], define cpu utilities in downloading audios [default: 0.8]")
     return parser.parse_args()
 
@@ -57,12 +58,15 @@ def metadata(filt):
     # Return the path to the folder containing downloaded metadata
     return paths
 
+def str2seconds(time_str):
+    return sum(x * int(t) for x, t in zip([60, 1], time_str.split(":"))) 
+
 def listdir_nohidden(path):
     for f in os.listdir(path):
         if not f.startswith('.'):
             yield f
 
-def download(pid, pTotal, metadata_paths):
+def download(pid, pTotal, metadata_paths, length_max):
     isFirst = True
     
     all_recordings = []
@@ -82,6 +86,7 @@ def download(pid, pTotal, metadata_paths):
     
     for pa in paths:
         page = 1
+        pa_time = 0
         with open(pa + '/page' + str(page) + ".json", 'r') as jsonfile:
             data = json.loads(jsonfile.read())
             
@@ -101,6 +106,24 @@ def download(pid, pTotal, metadata_paths):
                     new_data = json.loads(jsonfile.read())
                     all_recordings += new_data['recordings']
                     
+    all_recordings = sorted(all_recordings, key = lambda i: str2seconds(i['length']))
+    all_recordings = [wav for wav in all_recordings if str2seconds(wav['length'])>6]
+    all_rec_new = []
+    all_spec2time = {}
+    # limit by time
+    for rec in tqdm(all_recordings, desc="filtering with length_max"):
+        spec_name = "%s_%s"%(rec['gen'],rec['sp'])
+        if not spec_name in all_spec2time:
+            all_spec2time[spec_name] = 0
+        all_spec2time[spec_name] += str2seconds(rec['length'])
+        if all_spec2time[spec_name] > length_max:
+            continue
+        all_rec_new.append(rec)
+        
+    # print("%d -> %d"%(len(all_recordings), len(all_rec_new)))
+    all_recordings = all_rec_new
+    
+    
     # assign portion to each process
     portion = len(all_recordings) // pTotal
     if pid == 0:
@@ -168,7 +191,7 @@ if __name__ == '__main__':
     worker_count = int(multiprocessing.cpu_count() * args.process_ratio)
     worker_pool = []
     for i in range(worker_count):
-        p = Process(target=download, args=(i, worker_count, metadata_path))
+        p = Process(target=download, args=(i, worker_count, metadata_path, int(args.time_limit*60)))
         p.start()
         worker_pool.append(p)
     for p in worker_pool:
