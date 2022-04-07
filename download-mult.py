@@ -16,7 +16,9 @@ def parse_args():
     parser.add_argument('--output', type=str, default="dataset/audio/", help="path of output directory")
     return parser.parse_args()
 
-def metadata(filt):
+def metadata(pid, filt, nproc, path_only=False):
+    isFirst = True
+    
     filt_path = list()
     filt_url = list()
     print("Retrieving metadata...")
@@ -32,21 +34,41 @@ def metadata(filt):
     for path in paths:
         if not os.path.exists(path):
             os.makedirs(path, exist_ok=True)
+    
+    if path_only:
+        return paths
 
+    # assign portion to each process
+    portion = len(filt_url) // nproc
+    if pid == 0:
+        filt_url = filt_url[:portion]
+    elif pid == nproc - 1:
+        filt_url = filt_url[portion*pid:]
+    else:
+        filt_url = filt_url[portion*pid: portion*(pid+1)]
+            
     # Save all pages of the JSON response    
-    for fu in tqdm(filt_url, desc="retrieving metadata"):
+    for fu in tqdm(filt_url, desc="process %d"%os.getpid()):
+        if isFirst:
+            with open('kill_meta.sh','a') as f:
+                f.write('kill -9 %d\n'%os.getpid())
+            isFirst = False
+        
         path = 'dataset/metadata/' + fu.replace('%20','')
-        # if os.path.isdir(path):
-        #     continue
         page, page_num = 1, 1
         while page < page_num + 1:
             url = 'https://www.xeno-canto.org/api/2/recordings?query={0}&page={1}'.format(fu, page)
-            try:
-                r = request.urlopen(url)
-            except error.HTTPError as e:
-                print('An error has occurred: ' + str(e))
-                print('Bad filter url: %s'%fu)
-                break
+            attempts = 0
+            while attempts < 3:
+                try:
+                    r = request.urlopen(url)
+                    break
+                except error.HTTPError as e:
+                    attempts += 1
+                    if attempts == 3:
+                        print('An error has occurred: ' + str(e))
+                        print('Bad filter url: %s'%fu)
+                    
 #             print("Downloading metadate page " + str(page) + "...")
             data = json.loads(r.read().decode('UTF-8'))
             filename = path + '/page' + str(page) + '.json'
@@ -165,13 +187,13 @@ def download(pid, pTotal, metadata_paths, length_max, output_dir):
             continue
 
         attempts = 0
-        while attempts < 3:
+        while attempts < 10:
             try:
                 request.urlretrieve(url, audio_path + audio_file)
                 break
             except:
                 attempts += 1
-                if url and (attempts == 3):
+                if url and (attempts == 10):
                     print('Bad url: %s'%url)
                     with open('bad_urls.txt','a') as f:
                         f.write(url+'\n')
@@ -179,6 +201,9 @@ def download(pid, pTotal, metadata_paths, length_max, output_dir):
         
 if __name__ == '__main__':
     with open('kill.sh','w') as f:
+        f.write('')
+        
+    with open('kill_meta.sh','w') as f:
         f.write('')
     
     with open('bad_urls.txt','w') as f:
@@ -192,12 +217,23 @@ if __name__ == '__main__':
     else:
         all_birds = [args.name.lower()]
         
-    # retrieve metadata
-    metadata_path = metadata(all_birds)
+    
     
     # multiprocessing
     worker_count = int(multiprocessing.cpu_count() * args.process_ratio)
     worker_pool = []
+    
+    # retrieve metadata
+    for i in range(worker_count):
+        p = Process(target=metadata, args=(i, all_birds, worker_count))
+        p.start()
+        worker_pool.append(p)
+    for p in worker_pool:
+        p.join()
+        
+    metadata_path = metadata(None, all_birds, worker_count, path_only=True)
+    
+    
     for i in range(worker_count):
         p = Process(target=download, args=(i, worker_count, metadata_path, int(args.time_limit*60), args.output.rstrip('/')+'/'))
         p.start()
