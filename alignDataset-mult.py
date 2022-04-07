@@ -60,7 +60,7 @@ if __name__ == '__main__':
         allClips += [dataDir + bird + '/' + x for x in tmpClips if x.endswith('mp3') or x.endswith('wav')]
         
     # init output directories
-    outDir = args.outDir.strip('/') + '/'
+    outDir = args.outDir.rstrip('/') + '/'
     if not os.path.isdir(outDir):
         os.mkdir(outDir)
     for bird in allBirds:
