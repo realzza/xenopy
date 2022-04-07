@@ -36,8 +36,8 @@ def metadata(filt):
     # Save all pages of the JSON response    
     for fu in tqdm(filt_url, desc="retrieving metadata"):
         path = 'dataset/metadata/' + fu.replace('%20','')
-        if os.path.isdir(path):
-            continue
+        # if os.path.isdir(path):
+        #     continue
         page, page_num = 1, 1
         while page < page_num + 1:
             url = 'https://www.xeno-canto.org/api/2/recordings?query={0}&page={1}'.format(fu, page)
@@ -76,6 +76,7 @@ def download(pid, pTotal, metadata_paths, length_max, output_dir):
 
     # Retrieve metadata to parse for download links
     paths = metadata_paths
+    # paths = metadata(metadata_paths)
 
     # Enumerate list of metadata folders
     path_list = listdir_nohidden("dataset/metadata/")
@@ -163,13 +164,17 @@ def download(pid, pTotal, metadata_paths, length_max, output_dir):
         if os.path.exists(audio_path + audio_file):
             continue
 
-        try:
-            request.urlretrieve(url, audio_path + audio_file)
-        except:
-            if url:
-                print('Bad url: %s'%url)
-                with open('bad_urls.txt','a') as f:
-                    f.write(url+'\n')
+        attempts = 0
+        while attempts < 3:
+            try:
+                request.urlretrieve(url, audio_path + audio_file)
+                break
+            except:
+                attempts += 1
+                if url and (attempts == 3):
+                    print('Bad url: %s'%url)
+                    with open('bad_urls.txt','a') as f:
+                        f.write(url+'\n')
 
         
 if __name__ == '__main__':
