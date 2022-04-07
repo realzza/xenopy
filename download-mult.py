@@ -13,6 +13,7 @@ def parse_args():
     parser.add_argument('--name', type=str, required=True, help="[1] name of one bird species; [2] file of bird species spaced by '\\n' ")
     parser.add_argument('--time-limit', type=float, default=15, help="length of downloaded audio of each birds")
     parser.add_argument('--process-ratio', type=float, default=0.8, help="float[0~1], define cpu utilities in downloading audios [default: 0.8]")
+    parser.add_argument('--output', type=str, default="dataset/audio/", help="path of output directory")
     return parser.parse_args()
 
 def metadata(filt):
@@ -35,6 +36,8 @@ def metadata(filt):
     # Save all pages of the JSON response    
     for fu in tqdm(filt_url, desc="retrieving metadata"):
         path = 'dataset/metadata/' + fu.replace('%20','')
+        if os.path.isdir(path):
+            continue
         page, page_num = 1, 1
         while page < page_num + 1:
             url = 'https://www.xeno-canto.org/api/2/recordings?query={0}&page={1}'.format(fu, page)
@@ -50,9 +53,9 @@ def metadata(filt):
             with open(filename, 'w') as saved:
                 json.dump(data, saved)
             # restrict recording number to 1500 recordings/species
-#             page_num = min(3, data['numPages'])
+            page_num = min(3, data['numPages'])
             # no restrict
-            page_num = data['numPages']
+            # page_num = data['numPages']
             page += 1
 
     # Return the path to the folder containing downloaded metadata
@@ -66,7 +69,7 @@ def listdir_nohidden(path):
         if not f.startswith('.'):
             yield f
 
-def download(pid, pTotal, metadata_paths, length_max):
+def download(pid, pTotal, metadata_paths, length_max, output_dir):
     isFirst = True
     
     all_recordings = []
@@ -93,11 +96,11 @@ def download(pid, pTotal, metadata_paths, length_max):
         # init audio directory and collect data
         if int(data['numRecordings']) > 0:
             bird_name = data['recordings'][0]['en'].replace(' ','')
-            audio_dir = 'dataset/audio/' + bird_name
+            audio_dir = output_dir + bird_name
             if not os.path.exists(audio_dir):
                 os.makedirs(audio_dir, exist_ok=True)
         all_recordings += data['recordings']
-        page_num = min(3, data['numPages'])
+        page_num = min(1, data['numPages'])
 
         # combine multiple pages for multiprocessing
         if page_num > 1:
@@ -107,7 +110,7 @@ def download(pid, pTotal, metadata_paths, length_max):
                     all_recordings += new_data['recordings']
                     
     all_recordings = sorted(all_recordings, key = lambda i: str2seconds(i['length']))
-    all_recordings = [wav for wav in all_recordings if str2seconds(wav['length'])>6]
+    all_recordings = [wav for wav in all_recordings if str2seconds(wav['length'])>=6]
     all_rec_new = []
     all_spec2time = {}
     # limit by time
@@ -143,7 +146,7 @@ def download(pid, pTotal, metadata_paths, length_max):
         name = (curr_rec['en']).replace(' ', '')
         track_id = curr_rec['id']
 
-        audio_path = 'dataset/audio/' + name + '/'
+        audio_path = output_dir + name + '/'
         audio_file = str(track_id) + '.mp3'
 
         # If the track has been included in the progress files, it can be corrupt and must be redownloaded regardless
@@ -191,7 +194,7 @@ if __name__ == '__main__':
     worker_count = int(multiprocessing.cpu_count() * args.process_ratio)
     worker_pool = []
     for i in range(worker_count):
-        p = Process(target=download, args=(i, worker_count, metadata_path, int(args.time_limit*60)))
+        p = Process(target=download, args=(i, worker_count, metadata_path, int(args.time_limit*60), args.output.rstrip('/')+'/'))
         p.start()
         worker_pool.append(p)
     for p in worker_pool:
