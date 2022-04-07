@@ -12,11 +12,13 @@ def parse_args():
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('--name', type=str, required=True, help="[1] name of one bird species; [2] file of bird species spaced by '\\n' ")
     parser.add_argument('--time-limit', type=float, default=15, help="length of downloaded audio of each birds")
+    parser.add_argument('--process-meta', type=int, default=20, help="number of process to download metadata")
     parser.add_argument('--process-ratio', type=float, default=0.8, help="float[0~1], define cpu utilities in downloading audios [default: 0.8]")
     parser.add_argument('--output', type=str, default="dataset/audio/", help="path of output directory")
+    parser.add_argument('--attempts', type=int, default=5, help="number of retry download times")
     return parser.parse_args()
 
-def metadata(pid, filt, nproc, path_only=False):
+def metadata(pid, filt, nproc, attempts_thres, path_only=False):
     isFirst = True
     
     filt_path = list()
@@ -59,13 +61,13 @@ def metadata(pid, filt, nproc, path_only=False):
         while page < page_num + 1:
             url = 'https://www.xeno-canto.org/api/2/recordings?query={0}&page={1}'.format(fu, page)
             attempts = 0
-            while attempts < 3:
+            while attempts < attempts_thres:
                 try:
                     r = request.urlopen(url)
                     break
                 except error.HTTPError as e:
                     attempts += 1
-                    if attempts == 3:
+                    if attempts == attempts_thres:
                         print('An error has occurred: ' + str(e))
                         print('Bad filter url: %s'%fu)
                     
@@ -91,7 +93,7 @@ def listdir_nohidden(path):
         if not f.startswith('.'):
             yield f
 
-def download(pid, pTotal, metadata_paths, length_max, output_dir):
+def download(pid, pTotal, metadata_paths, length_max, output_dir, attempts_thres):
     isFirst = True
     
     all_recordings = []
@@ -187,13 +189,13 @@ def download(pid, pTotal, metadata_paths, length_max, output_dir):
             continue
 
         attempts = 0
-        while attempts < 10:
+        while attempts < attempts_thres:
             try:
                 request.urlretrieve(url, audio_path + audio_file)
                 break
             except:
                 attempts += 1
-                if url and (attempts == 10):
+                if url and (attempts == attempts_thres):
                     print('Bad url: %s'%url)
                     with open('bad_urls.txt','a') as f:
                         f.write(url+'\n')
@@ -225,17 +227,17 @@ if __name__ == '__main__':
     
     # retrieve metadata
     for i in range(worker_count):
-        p = Process(target=metadata, args=(i, all_birds, worker_count))
+        p = Process(target=metadata, args=(i, all_birds, args.process_meta, args.attempts))
         p.start()
         worker_pool.append(p)
     for p in worker_pool:
         p.join()
         
-    metadata_path = metadata(None, all_birds, worker_count, path_only=True)
+    metadata_path = metadata(None, all_birds, worker_count, args.attempts, path_only=True)
     
     
     for i in range(worker_count):
-        p = Process(target=download, args=(i, worker_count, metadata_path, int(args.time_limit*60), args.output.rstrip('/')+'/'))
+        p = Process(target=download, args=(i, worker_count, metadata_path, int(args.time_limit*60), args.output.rstrip('/')+'/'), args.attempts)
         p.start()
         worker_pool.append(p)
     for p in worker_pool:
