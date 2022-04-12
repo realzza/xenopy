@@ -26,9 +26,10 @@ def parse_args():
     parser.add_argument('--year', type=str, default=None, help="year")
     parser.add_argument('--month', type=str, default=None, help="month")
     parser.add_argument('--output', type=str, default="dataset/metadata/", help="directory to output directory. default: `dataset/metadata/`")
+    parser.add_argument('--attempts', type=int, default=8)
     return parser.parse_args()
 
-def metadata(qry, output_dir):
+def metadata(qry, output_dir, n_attempts):
     filt_path = [qry.replace(' ', '%20')]
     filt_url = [qry]
     print("Retrieving metadata...")
@@ -46,14 +47,18 @@ def metadata(qry, output_dir):
         page, page_num = 1, 1
         while page < page_num + 1:
             url = 'https://www.xeno-canto.org/api/2/recordings?query={0}&page={1}'.format(fu, page)
-            try:
-                print(url)
-                r = request.urlopen(url)
-            except error.HTTPError as e:
-                print('An error has occurred: ' + str(e))
-                print('Bad filter url: %s'%fu)
-                break
-#             print("Downloading metadate page " + str(page) + "...")
+            attempts = 0
+            while attempts < n_attempts:
+                try:
+                    print(url)
+                    r = request.urlopen(url)
+                    break
+                except error.HTTPError as e:
+                    attempts += 1
+                    if attempts == n_attempts:
+                        print('An error has occurred: ' + str(e))
+                        print('Bad filter url: %s'%fu)
+                    
             data = json.loads(r.read().decode('UTF-8'))
             filename = path + '/page' + str(page) + '.json'
             with open(filename, 'w') as saved:
@@ -70,10 +75,10 @@ def metadata(qry, output_dir):
 if __name__ == '__main__':
     
     args = parse_args()
-    query_options = {k:v for k,v in vars(args).items() if v and k != 'output'}
+    query_options = {k:v for k,v in vars(args).items() if v and k != 'output' and k != "attempts"}
     assert query_options, "empty query, please add query options"
     query = '%20'.join(["%s:%s"%(k,v) for k,v in query_options.items()])
-    print(query)
+    print(query.replace('%20',' '))
         
     # retrieve metadata
-    metadata_path = metadata(query, args.output.rstrip('/')+'/')
+    metadata_path = metadata(query, args.output.rstrip('/')+'/', args.attempts)
