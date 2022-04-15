@@ -10,8 +10,6 @@ from multiprocessing import Process
 def parse_args():
     desc="download bird audios"
     parser = argparse.ArgumentParser(description=desc)
-    # parser.add_argument('--name', type=str, default=None, help="[1] name of one bird species; [2] file of bird species spaced by '\\n' ")
-    # parser.add_argument('--query', type=str, default=None, help="metadata query. refer to `https://xeno-canto.org/help/search` for more details in search query")
     parser.add_argument('--gen', type=str, default=None, help="genus")
     parser.add_argument('--ssp', type=str, default=None, help="subspecies")
     parser.add_argument('--cnt', type=str, default=None, help="country")
