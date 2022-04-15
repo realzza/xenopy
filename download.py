@@ -147,7 +147,6 @@ if __name__ == '__main__':
     if isFile:
         with open(args.name, 'r') as f:
             all_birds = [n.lower() for n in f.read().split('\n') if n]
-            print(all_birds)
     else:
         all_birds = [args.name.lower()]
     download(all_birds)
