@@ -237,7 +237,7 @@ if __name__ == '__main__':
     
     
     for i in range(worker_count):
-        p = Process(target=download, args=(i, worker_count, metadata_path, int(args.time_limit*60), args.output.rstrip('/')+'/'), args.attempts)
+        p = Process(target=download, args=(i, worker_count, metadata_path, int(args.time_limit*60), args.output.rstrip('/')+'/', args.attempts))
         p.start()
         worker_pool.append(p)
     for p in worker_pool:
