@@ -18,7 +18,54 @@ Set up environment:
 pip install -r requirement.txt
 ```
 
-## Download
+## Download MetaData
+Metadata is a simple configuration for each recording. Typically, metadata files contain information like recordist, recoding time, country, location, latitude, longitude, altitude, and recording length. Below is an example of a metadata file.
+```json
+{
+    "id": "426350", 
+    "gen": "Abroscopus", 
+    "sp": "superciliaris", 
+    "ssp": "", 
+    "en": "Yellow-bellied Warbler", 
+    "rec": "Peter Boesman", 
+    "cnt": "India", 
+    "loc": "Eagle Nest, Sessni area and lower, Arrunachal Pradesh",
+    "lat": "27.0223", 
+    "lng": "92.4139",
+    "alt": "", 
+    "type": "song", 
+    "url": "//xeno-canto.org/426350", 
+    "file": "https://xeno-canto.org/426350/download"
+}
+```
+Use `download_meta.py` to download metadata files. Customize your own query by defining multiple parameters before you request metadata from xeno-canto api.
+```
+optional arguments:
+  -h, --help           show this help message and exit
+  --gen GEN            genus
+  --ssp SSP            subspecies
+  --cnt CNT            country
+  --type TYPE          type
+  --rmk RMK            remark
+  --lat LAT            latitude
+  --lon LON            longtitude
+  --loc LOC            location
+  --box BOX            box:LAT_MIN,LON_MIN,LAT_MAX,LON_MAX
+  --area AREA          Continent
+  --since SINCE        e.g. since:2012-11-09
+  --year YEAR          year
+  --month MONTH        month
+  --output OUTPUT      directory to output directory. default: `dataset/metadata/`
+  --attempts ATTEMPTS
+```
+A sample metadata downloading activity
+```bash
+python download-meta.py --cnt China --loc Shanghai --since 2022-01-01 --output test/
+```
+Please refer to the [Search Tips](https://xeno-canto.org/help/search) for definitions about above parameters.
+
+
+## Download Recordings
 ### Single-thread
 Download audio data for one bird species. Use ***scientific name*** starting with **lowercase**. e.g, *cettia cetti*.
 ```python
