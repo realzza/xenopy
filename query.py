@@ -168,7 +168,7 @@ class Query:
                 n_attempts = 0
                 while n_attempts < attempts:
                     try:
-                        request.urlretrieve(url, audio_path + audio_file)
+                        request.urlretrieve(url, audio_path + audio_file) #nosec
                         downloaded.append(url)
                         break
                     except error.HTTPError as e:
@@ -204,7 +204,7 @@ class Query:
             n_attempts = 0
             while n_attempts < attempts:
                 try:
-                    request.urlretrieve(url, audio_path + audio_file)
+                    request.urlretrieve(url, audio_path + audio_file) #nosec
                     downloaded.append(url)
                     break
                 except error.HTTPError as e:
