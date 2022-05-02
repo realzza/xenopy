@@ -114,7 +114,7 @@ class Query:
                 try:
                     if verbose:
                         print(url)
-                    r = request.urlopen(url)
+                    r = request.urlopen(url) #nosec
                     break
                 except error.HTTPError as e:
                     n_attempts += 1
