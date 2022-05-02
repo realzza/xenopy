@@ -3,9 +3,11 @@
 **`xenopy`** is a python library that builds upon [xeno-canto API 2.0](https://xeno-canto.org/article/153).
 
 ## Install
+Install from `pip`.
 ```bash
 pip install xenopy
 ```
+You can also checkout the [**birdData** branch](https://github.com/realzza/xenopy/tree/birdData) for implementation from source. (ps: birdData is the previous name of xenopy)
 
 ## Usage Snippet
 ```python
