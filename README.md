@@ -1,13 +1,18 @@
-# xenopy
+# XenoPy
+![PyPI](https://img.shields.io/pypi/v/xenopy?color=df&style=flat)&nbsp;
+![GitHub](https://img.shields.io/github/license/realzza/xenopy?color=%23FFB6C1&style=flat)&nbsp;
+![GitHub last commit](https://img.shields.io/github/last-commit/realzza/xenopy?color=orange&style=flat)&nbsp;
+![GitHub top language](https://img.shields.io/github/languages/top/realzza/xenopy?color=%236495ed&style=flat)&nbsp;
+[![CodeFactor](https://www.codefactor.io/repository/github/realzza/xenopy/badge)](https://www.codefactor.io/repository/github/realzza/xenopy)&nbsp;
 
-**`xenopy`** is a python library that builds upon [xeno-canto API 2.0](https://xeno-canto.org/article/153).
+**`XenoPy`** is a python library that builds upon [xeno-canto API 2.0](https://xeno-canto.org/article/153).
 
 ## Install
 Install from `pip`.
 ```bash
 pip install xenopy
 ```
-You can also checkout the [**birdData** branch](https://github.com/realzza/xenopy/tree/birdData) for implementation from source. (ps: birdData is the previous name of xenopy)
+Checkout the [**birdData**](https://github.com/realzza/xenopy/tree/birdData) branch to implement XenoPy from source. (ps: birdData is the former name of XenoPy)
 
 ## Usage Snippet
 ```python
@@ -19,7 +24,7 @@ q = Query(cnt="China",loc="Shanghai",since="2020-01-01")
 ### Retrieve Metafiles
 ```python
 # retrieve metadata
-metafiles = q.retrieve_meta(verbose=False)
+metafiles = q.retrieve_meta(verbose=True)
 ```
 
 ### Retrieve Recordings
@@ -27,7 +32,7 @@ metafiles = q.retrieve_meta(verbose=False)
 # retrieve recordings
 q.retrieve_recordings(multiprocess=True, nproc=10, attempts=10, outdir="datasets/")
 ```
-The retrieved recordings will be localized in `datasets/`, organized by bird species names.
+The retrieved recordings will be located in `datasets/`, organized by bird species names.
 
 The default downloading mode is single-threaded. `multiprocess` flag controls the usage of multiple downloading processes. `nproc` is only applicable when the `multiprocess` flag is on. The saving directory can be specified at `outDir`.
 
@@ -83,4 +88,4 @@ month: month. year and month tags allow you to search for recordings that were r
 
 ## Open Source
 The first generation of `xenocanto` [package](https://github.com/ntivirikin/xeno-canto-py) is hard to use also inefficient. Thus I wrapped the [2.0 API](https://xeno-canto.org/article/153) version in a more straightforward and efficient interface.
-Feel free to file an issue had you encountered any bugs, or prompt a PR to this `xenopy` to join me in maintenance and optimization.
+Feel free to file an issue had you encountered any bugs, or prompt a PR to `XenoPy` to join me in maintenance and optimization.
