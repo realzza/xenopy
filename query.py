@@ -6,11 +6,11 @@ from tqdm import tqdm
 from urllib import request, error
 from multiprocess import Process
 
-params = ['gen','ssp','rec','cnt','loc','rmk','lat','lon','box','also','type','nr','lic','q','q_lt','q_gt','len','len_lt','len_gt','area','since','year','month']
+params = ['gen','ssp','rec','cnt','loc','rmk','lat','lon','box','also','rec_type','nr','lic','q','q_lt','q_gt','length','len_lt','len_gt','area','since','year','month']
 
 class Query:
     
-    def __init__(self, gen=None, ssp=None, rec=None, cnt=None, loc=None, rmk=None, lat=None, lon=None, box=None, also=None, type=None, nr=None, lic=None, q=None, q_lt=None, q_gt=None, len=None, len_lt=None, len_gt=None, area=None, since=None, year=None, month=None):
+    def __init__(self, gen=None, ssp=None, rec=None, cnt=None, loc=None, rmk=None, lat=None, lon=None, box=None, also=None, rec_type=None, nr=None, lic=None, q=None, q_lt=None, q_gt=None, length=None, len_lt=None, len_gt=None, area=None, since=None, year=None, month=None):
         """
         params:
             gen: Genus. Genus is part of a species' latin name, so it is searched by default when performing a basic search (as mentioned above).
@@ -23,7 +23,7 @@ class Query:
             lon: longtitude
             box: search for recordings that occur within a given rectangle. The general format of the box tag is as follows: box:LAT_MIN,LON_MIN,LAT_MAX,LON_MAX. Note that there must not be any spaces between the coordinates.
             also: To search for recordings that have a given species in the background.
-            type: Search for recordings of a particular sound type, e.g., type='song'
+            rec_type: Search for recordings of a particular sound type, e.g., rec_type='song'
             nr: number. To search for a known recording number, use the nr tag: for example nr:76967. You can also search for a range of numbers as nr:88888-88890.
             lc: license.
             q: quality ratings. 
@@ -35,12 +35,12 @@ class Query:
                         - q:0 search explicitly for unrated recordings
                         - q_lt:C will return recordings with a quality rating of D or E.
                         - q_gt:C will return recordings with a quality rating of B or A.
-            len: recording length control parameter.
+            length: recording length control parameter.
             len_lt: recording length less than
             len_gt: recording length greater than
                 Usage Examples:
-                    len:10 will return recordings with a duration of 10 seconds (with a margin of 1%, so actually between 9.9 and 10.1 seconds)
-                    len:10-15 will return recordings lasting between 10 and 15 seconds.
+                    length:10 will return recordings with a duration of 10 seconds (with a margin of 1%, so actually between 9.9 and 10.1 seconds)
+                    length:10-15 will return recordings lasting between 10 and 15 seconds.
                     len_lt:30 will return recordings half a minute or shorter in length.
                     len_gt:120 will return recordings longer than two minutes in length.
             area: continents. Valid values for this tag: africa, america, asia, australia, europe.
@@ -63,13 +63,13 @@ class Query:
         self.args['lon'] = lon
         self.args['box'] = box
         self.args['also'] = also
-        self.args['type'] = type
+        self.args['type'] = rec_type
         self.args['nr'] = nr
         self.args['lic'] = lic
         self.args['q'] = q
         self.args['q_lt'] = q_lt
         self.args['q_gt'] = q_gt
-        self.args['len'] = len
+        self.args['len'] = length
         self.args['len_lt'] = len_lt
         self.args['len_gt'] = len_gt
         self.args['area'] = area
