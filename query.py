@@ -171,7 +171,7 @@ class Query:
                         request.urlretrieve(url, audio_path + audio_file)
                         downloaded.append(url)
                         break
-                    except:
+                    except error.HTTPError as e:
                         n_attempts += 1
                         if url and (n_attempts == attempts):
                             print('Bad url: %s'%url)
@@ -207,7 +207,7 @@ class Query:
                     request.urlretrieve(url, audio_path + audio_file)
                     downloaded.append(url)
                     break
-                except:
+                except error.HTTPError as e:
                     n_attempts += 1
                     if url and (n_attempts == attempts):
                         print('Bad url: %s'%url)
