@@ -21,6 +21,6 @@ def chunks(lst, n):
     num_list = average(len(lst), n)
     offset = 0
     for num in num_list:
-        to_return.append([lst[i + offset] for i in range(num)])
+        to_return.append([lst[offset : offset + num]])
         offset += num
     return to_return
