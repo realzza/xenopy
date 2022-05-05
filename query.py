@@ -10,9 +10,10 @@ params = ['gen','ssp','rec','cnt','loc','rmk','lat','lon','box','also','rec_type
 
 class Query:
     
-    def __init__(self, gen=None, ssp=None, rec=None, cnt=None, loc=None, rmk=None, lat=None, lon=None, box=None, also=None, rec_type=None, nr=None, lic=None, q=None, q_lt=None, q_gt=None, length=None, len_lt=None, len_gt=None, area=None, since=None, year=None, month=None):
+    def __init__(self, name=None, gen=None, ssp=None, rec=None, cnt=None, loc=None, rmk=None, lat=None, lon=None, box=None, also=None, rec_type=None, nr=None, lic=None, q=None, q_lt=None, q_gt=None, length=None, len_lt=None, len_gt=None, area=None, since=None, year=None, month=None):
         """
         params:
+            name: Can search for bird name directly. str
             gen: Genus. Genus is part of a species' latin name, so it is searched by default when performing a basic search (as mentioned above).
             ssp: subspecies
             rec: recordist. Search for all recordings from a particular recordist.
@@ -53,6 +54,8 @@ class Query:
         """
         
         self.args = {}
+        if name:
+            self.args['name'] = name.replace(' ','%20')
         self.args['gen'] = gen
         self.args['ssp'] = ssp
         self.args['rec'] = rec
@@ -79,7 +82,9 @@ class Query:
         
         query_options = {k:v for k,v in self.args.items() if v}
         assert query_options, "empty query, please add query options"
-        self.query = '%20'.join(["%s:%s"%(k,v) for k,v in query_options.items()])
+        if self.args['name']:
+            del self.args['gen'], self.args['ssp']
+        self.query = '%20'.join(["%s:%s"%(k,v) for k,v in query_options.items()]).replace("name:",'')
         self.args = query_options
         print("query:",self.query.replace('%20',' '))
         

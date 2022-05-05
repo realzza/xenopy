@@ -15,10 +15,11 @@ pip install xenopy
 Checkout the [**birdData**](https://github.com/realzza/xenopy/tree/birdData) branch to implement XenoPy from source. (ps: birdData is the former name of XenoPy)
 
 ## Usage Snippet
+You can directly search for bird data for a specific species. For instance, we retrieve data for [*African Silverbill*](https://xeno-canto.org/species/Euodice-cantans) whom's `quality` better than `C` since `2020-01-01`.
 ```python
 from xenopy import Query
 
-q = Query(cnt="China",loc="Shanghai",since="2020-01-01")
+q = Query(name="African silverbill", q_gt="C", since="2020-01-01")
 ```
 
 ### Retrieve Metafiles
@@ -41,6 +42,7 @@ Two files will be generated while running `retrieve_recordings`, `kill_multiproc
 ## Define a `Query`
 As you can tell from the [Usage Snippet](#Usage-Snippet), defining a query is the most important step in communicating with the API. We determined the following interface to form a query based on the xeno-canto [search tips](https://xeno-canto.org/help/search).
 ```markdown
+name: Species Name. Specify the name of bird you intend to retrieve data from. Both English names and Latin names are acceptable.
 gen: Genus. Genus is part of a species' latin name, so it is searched by default when performing a basic search (as mentioned above).
 ssp: subspecies
 rec: recordist. Search for all recordings from a particular recordist.
