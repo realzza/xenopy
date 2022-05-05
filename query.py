@@ -82,7 +82,7 @@ class Query:
         
         query_options = {k:v for k,v in self.args.items() if v}
         assert query_options, "empty query, please add query options"
-        if self.args['name']:
+        if name:
             del self.args['gen'], self.args['ssp']
         self.query = '%20'.join(["%s:%s"%(k,v) for k,v in query_options.items()]).replace("name:",'')
         self.args = query_options

@@ -84,9 +84,9 @@ month: month. year and month tags allow you to search for recordings that were r
 ```
 
 ## Update History
-[latest version](https://pypi.org/project/xenopy/)
 
 :tada: [**v0.0.4**](https://pypi.org/project/xenopy/0.0.4/)
+- Support Query by bird `name`.
 - Cut inessential processes in query traffic.
 - Optimized query assignment strategy in recording retrieval.
 
