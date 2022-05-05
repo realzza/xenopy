@@ -14,6 +14,7 @@ pip install xenopy
 ```
 Checkout the [**birdData**](https://github.com/realzza/xenopy/tree/birdData) branch to implement XenoPy from source. (ps: birdData is the former name of XenoPy)
 
+
 ## Usage Snippet
 You can directly search for bird data for a specific species. For instance, we retrieve data for [*African Silverbill*](https://xeno-canto.org/species/Euodice-cantans) whom's `quality` better than `C` since `2020-01-01`.
 ```python
@@ -81,6 +82,13 @@ since:
 year: year
 month: month. year and month tags allow you to search for recordings that were recorded on a certain date. 
 ```
+
+## Update History
+[latest version](https://pypi.org/project/xenopy/)
+
+:tada: [**v0.0.4**](https://pypi.org/project/xenopy/0.0.4/)
+- Cut inessential processes in query traffic.
+- Optimized query assignment strategy in recording retrieval.
 
 ## todo
 - [x] create query object for single species, containing features like
