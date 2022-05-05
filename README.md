@@ -1,8 +1,8 @@
 # XenoPy
-![PyPI](https://img.shields.io/pypi/v/xenopy?color=df&style=flat)&nbsp;
-![GitHub](https://img.shields.io/github/license/realzza/xenopy?color=%23FFB6C1&style=flat)&nbsp;
-![GitHub last commit](https://img.shields.io/github/last-commit/realzza/xenopy?color=orange&style=flat)&nbsp;
-![GitHub top language](https://img.shields.io/github/languages/top/realzza/xenopy?color=%236495ed&style=flat)&nbsp;
+![PyPI](https://img.shields.io/pypi/v/xenopy?color=df)&nbsp;
+![GitHub](https://img.shields.io/github/license/realzza/xenopy?color=%23FFB6C1)&nbsp;
+![GitHub last commit](https://img.shields.io/github/last-commit/realzza/xenopy?color=orange)&nbsp;
+![GitHub top language](https://img.shields.io/github/languages/top/realzza/xenopy?color=%236495ed)&nbsp;
 [![CodeFactor](https://www.codefactor.io/repository/github/realzza/xenopy/badge)](https://www.codefactor.io/repository/github/realzza/xenopy)&nbsp;
 
 **`XenoPy`** is a python library that builds upon [xeno-canto API 2.0](https://xeno-canto.org/article/153).
