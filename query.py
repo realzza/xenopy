@@ -229,6 +229,7 @@ class Query:
         all_recordings = self.retrieve_meta(recordings_only=True)
         all_recordings = [rec for rec in all_recordings if rec['file']]
         
+        nproc = min(len(all_recordings), nproc)
         recording_packs = list(chunks(all_recordings, nproc))
         
         worker_pool = []
