@@ -1,18 +1,26 @@
+from typing import List
+
+
+def average(L, n) -> List[int]:
+    """
+    average the list the most possible
+    """
+    if (L / n) == int(L / n):
+        k = int(L / n)
+        ans = [k] * n
+    else:
+        k = int(L / n)
+        a = L - k * n
+        ans = [k + 1] * a + [k] * (n - a)
+    return ans
+
+
 def chunks(lst, n):
     """Yield successive n-sized chunks from lst."""
     to_return = []
-    portion = len(lst) // n 
-    for i in range(0, n):
-        if i == (n - 1):
-            last_port = lst[portion*i:]
-            diff = len(last_port) - portion
-            
-            for j in range(diff):
-                to_return[j].append(last_port[j])
-                
-            last_port = last_port[diff:]
-            to_return.append(last_port)
-            
-        else:
-            to_return.append(lst[portion*i: portion*(i+1)])
+    num_list = average(len(lst), n)
+    offset = 0
+    for num in num_list:
+        to_return.append([lst[i + offset] for i in range(num)])
+        offset += num
     return to_return
