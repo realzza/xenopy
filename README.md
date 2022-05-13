@@ -4,6 +4,7 @@
 ![GitHub last commit](https://img.shields.io/github/last-commit/realzza/xenopy?color=orange)&nbsp;
 ![GitHub top language](https://img.shields.io/github/languages/top/realzza/xenopy?color=%236495ed)&nbsp;
 [![CodeFactor](https://www.codefactor.io/repository/github/realzza/xenopy/badge)](https://www.codefactor.io/repository/github/realzza/xenopy)&nbsp;
+[![DOI](https://zenodo.org/badge/442515920.svg)](https://zenodo.org/badge/latestdoi/442515920)
 
 **`XenoPy`** is a python library that builds upon [xeno-canto API 2.0](https://xeno-canto.org/article/153).
 
@@ -81,6 +82,21 @@ since:
         - since=YYYY-MM-DD, since the particular date
 year: year
 month: month. year and month tags allow you to search for recordings that were recorded on a certain date. 
+```
+
+## Citation
+If `XenoPy` is helpful in your project or research in any form, you can cite this software as the following
+```bibtex
+@software{ziang_zhou_2022_6545294,
+  author       = {Ziang Zhou},
+  title        = {realzza/xenopy: XenoPy v0.0.4},
+  month        = may,
+  year         = 2022,
+  publisher    = {Zenodo},
+  version      = {v0.0.4},
+  doi          = {10.5281/zenodo.6545294},
+  url          = {https://doi.org/10.5281/zenodo.6545294}
+}
 ```
 
 ## Update History
