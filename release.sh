@@ -1,3 +1,3 @@
-rm -r dist src/easybird.egg-info/
+rm -r dist src/xenopy.egg-info/
 python -m build
 twine upload dist/*
