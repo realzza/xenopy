@@ -6,22 +6,39 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/realzza/xenopy/badge)](https://www.codefactor.io/repository/github/realzza/xenopy)&nbsp;
 [![DOI](https://zenodo.org/badge/442515920.svg)](https://zenodo.org/badge/latestdoi/442515920)
 
-**`XenoPy`** is a python library that builds upon [xeno-canto API 2.0](https://xeno-canto.org/article/153).
+**`XenoPy`** is a Python library for [xeno-canto API v3](https://xeno-canto.org/explore/api).
+API v3 requires an API key for every request.
 
 ## Install
 Install from `pip`.
 ```bash
 pip install xenopy
 ```
+Set your API key in environment variable `XENO_CANTO_API_KEY` (or pass `api_key=...` to `Query`):
+```bash
+export XENO_CANTO_API_KEY="your_xeno_canto_key"
+```
 Checkout the [**birdData**](https://github.com/realzza/xenopy/tree/birdData) branch to implement XenoPy from source. (ps: birdData is the former name of XenoPy)
 
 
-## Usage Snippet
-You can directly search for bird data for a specific species. For instance, we retrieve data for [*African Silverbill*](https://xeno-canto.org/species/Euodice-cantans) whom's `quality` better than `C` since `2020-01-01`.
+## Usage
+API v3 requires:
+- tagged search terms (`sp:`, `gen:`, `en:`, etc.)
+- an API key (`api_key` argument or `XENO_CANTO_API_KEY`)
+
+### Basic Query
+For exact species lookups, prefer `sp` over common-name `name`:
 ```python
 from xenopy import Query
 
-q = Query(name="African silverbill", q_gt="C", since="2020-01-01")
+q = Query(
+    api_key="your_xeno_canto_key",  # optional if XENO_CANTO_API_KEY is set
+    sp="euodice cantans",
+    grp="birds",
+    q_gt="C",
+    since="2020-01-01",
+    per_page=100,  # optional, 50-500
+)
 ```
 
 ### Retrieve Metafiles
@@ -42,10 +59,16 @@ The default downloading mode is single-threaded. `multiprocess` flag controls th
 Two files will be generated while running `retrieve_recordings`, `kill_multiprocess.sh`, and `failed.txt`. To interrupt multiprocess data retrieval, one can run `bash kill_multiprocess.sh` in the terminal. 'failed.txt' contains recordings that failed the retrieval, if any. The two files will be removed automatically removed after downloading finishes. `failed.txt` will preserve if not empty so that you can check the failed recordings out.
 
 ## Define a `Query`
-As you can tell from the [Usage Snippet](#Usage-Snippet), defining a query is the most important step in communicating with the API. We determined the following interface to form a query based on the xeno-canto [search tips](https://xeno-canto.org/help/search).
+As shown in the [Usage](#Usage) section, defining a query is the most important step in communicating with the API.
+The v3 API no longer supports "tag-less" search terms, so each query term uses an explicit field tag.
 ```markdown
-name: Species Name. Specify the name of bird you intend to retrieve data from. Both English names and Latin names are acceptable.
-gen: Genus. Genus is part of a species' latin name, so it is searched by default when performing a basic search (as mentioned above).
+api_key: Required for API v3. You can pass it directly or via XENO_CANTO_API_KEY.
+per_page: Optional page size for API v3, range 50-500.
+name: Common-name search helper mapped to `en:` in API v3.
+sp: Species field in API v3 (recommended for exact species lookups).
+fam: Family field in API v3.
+grp: Group field (birds, bats, frogs, etc.).
+gen: Genus.
 ssp: subspecies
 rec: recordist. Search for all recordings from a particular recordist.
 cnt: country. Search for all recordings from a particular country.
@@ -55,9 +78,9 @@ lat: latitude.
 lon: longtitude
 box: search for recordings that occur within a given rectangle. The general format of the box tag is as follows: box:LAT_MIN,LON_MIN,LAT_MAX,LON_MAX. Note that there must not be any spaces between the coordinates.
 also: To search for recordings that have a given species in the background.
-type: Search for recordings of a particular sound type, e.g., type='song'
+rec_type: Search for recordings of a particular sound type, e.g., rec_type='song'
 nr: number. To search for a known recording number, use the nr tag: for example nr:76967. You can also search for a range of numbers as nr:88888-88890.
-lc: license.
+lic: license.
 q: quality ratings. 
 q_lt: quality ratings less than
 q_gt: quality ratings better than
@@ -82,6 +105,22 @@ since:
         - since=YYYY-MM-DD, since the particular date
 year: year
 month: month. year and month tags allow you to search for recordings that were recorded on a certain date. 
+sex: animal sex.
+stage: life stage.
+method: recording method.
+smp: sample rate.
+```
+
+### Common Patterns
+```python
+# common name search (mapped to en:)
+Query(name="lesser black-backed gull", api_key="...")
+
+# strict species search
+Query(sp="larus fuscus", api_key="...")
+
+# genus + species tags
+Query(gen="larus", sp="fuscus", api_key="...")
 ```
 
 ## Citation
@@ -101,6 +140,13 @@ If `XenoPy` is helpful in your project or research in any form, you can cite thi
 
 ## Update History
 
+:tada: **v0.1.0** (planned)
+- Migrate API integration to xeno-canto API v3.
+- Add API key support and `per_page` support.
+- Add first-class v3 tags (`sp`, `fam`, `grp`, `sex`, `stage`, `method`, `smp`).
+- Improve query formatting for quoted values.
+- Normalize download URLs and improve request error handling.
+
 :tada: [**v0.0.4**](https://pypi.org/project/xenopy/0.0.4/)
 - Support Query by bird `name`.
 - Cut inessential processes in query traffic.
@@ -113,5 +159,5 @@ If `XenoPy` is helpful in your project or research in any form, you can cite thi
 - [x] add multiprocessing downloading feature
 
 ## Open Source
-The first generation of `xenocanto` [package](https://github.com/ntivirikin/xeno-canto-py) is hard to use also inefficient. Thus I wrapped the [2.0 API](https://xeno-canto.org/article/153) version in a more straightforward and efficient interface.
+The first generation of `xenocanto` [package](https://github.com/ntivirikin/xeno-canto-py) is hard to use also inefficient. Thus I wrapped the current [v3 API](https://xeno-canto.org/explore/api) in a straightforward interface.
 Feel free to file an issue had you encountered any bugs, or prompt a PR to `XenoPy` to join me in maintenance and optimization.
