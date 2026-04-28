@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 from urllib import error, request
+from urllib.parse import urlencode
 
 from multiprocess import Process
 from tqdm import tqdm
@@ -9,6 +10,9 @@ from tqdm import tqdm
 from utils import chunks
 
 params = [
+    "sp",
+    "fam",
+    "grp",
     "gen",
     "ssp",
     "rec",
@@ -32,13 +36,22 @@ params = [
     "since",
     "year",
     "month",
+    "sex",
+    "stage",
+    "method",
+    "smp",
 ]
 
 
 class Query:
     def __init__(
         self,
+        api_key=None,
+        per_page=None,
         name=None,
+        sp=None,
+        fam=None,
+        grp=None,
         gen=None,
         ssp=None,
         rec=None,
@@ -62,10 +75,17 @@ class Query:
         since=None,
         year=None,
         month=None,
+        sex=None,
+        stage=None,
+        method=None,
+        smp=None,
     ):
         """
         params:
             name: Can search for bird name directly. str
+            sp: Species. Scientific name or specific epithet in API v3 search syntax.
+            fam: Family.
+            grp: Group (e.g., birds, bats, frogs, grasshoppers).
             gen: Genus. Genus is part of a species' latin name, so it is searched by default when performing a basic search (as mentioned above).
             ssp: subspecies
             rec: recordist. Search for all recordings from a particular recordist.
@@ -103,11 +123,24 @@ class Query:
                     - since=YYYY-MM-DD, since the particular date
             year: year
             month: month. year and month tags allow you to search for recordings that were recorded on a certain date.
+            sex: sex of the animal.
+            stage: life stage of the animal.
+            method: recording method.
+            smp: sample rate.
         """
+
+        self.api_key = api_key or os.getenv("XENO_CANTO_API_KEY")
+        self.per_page = per_page
+        if self.per_page is not None and not (50 <= int(self.per_page) <= 500):
+            raise ValueError("per_page must be in range [50, 500] for API v3.")
 
         self.args = {}
         if name:
-            self.args["name"] = name.replace(" ", "%20")
+            # API v3 removed tag-less searches; "name" maps to common-name search.
+            self.args["en"] = name
+        self.args["sp"] = sp
+        self.args["fam"] = fam
+        self.args["grp"] = grp
         self.args["gen"] = gen
         self.args["ssp"] = ssp
         self.args["rec"] = rec
@@ -131,14 +164,18 @@ class Query:
         self.args["since"] = since
         self.args["year"] = year
         self.args["month"] = month
+        self.args["sex"] = sex
+        self.args["stage"] = stage
+        self.args["method"] = method
+        self.args["smp"] = smp
 
-        query_options = {k: v for k, v in self.args.items() if v}
+        query_options = {
+            k: v for k, v in self.args.items() if v is not None and v != ""
+        }
         assert query_options, "empty query, please add query options"
-        if name:
-            del self.args["gen"], self.args["ssp"]
         self.query = "%20".join(
-            ["%s:%s" % (k, v) for k, v in query_options.items()]
-        ).replace("name:", "")
+            [f"{k}:{self._format_query_value(v)}" for k, v in query_options.items()]
+        )
         self.args = query_options
         print("query:", self.query.replace("%20", " "))
 
@@ -147,6 +184,36 @@ class Query:
 
     def _init_dir(self, d):
         os.makedirs(d, exist_ok=True)
+
+    def _format_query_value(self, value):
+        value = str(value)
+        if value.startswith('"') and value.endswith('"'):
+            return value
+        must_quote = (" " in value) or any(op in value for op in ("<", ">", "="))
+        if must_quote:
+            escaped = value.replace('"', '\\"')
+            return f'"{escaped}"'
+        return value
+
+    def _build_meta_url(self, page):
+        if not self.api_key:
+            raise ValueError(
+                "xeno-canto API v3 requires an API key. "
+                "Pass api_key=... or set XENO_CANTO_API_KEY."
+            )
+        query = urlencode(
+            {
+                "query": self.query.replace("%20", " "),
+                "page": page,
+                "key": self.api_key,
+                **(
+                    {"per_page": int(self.per_page)}
+                    if self.per_page is not None
+                    else {}
+                ),
+            }
+        )
+        return f"https://xeno-canto.org/api/3/recordings?{query}"
 
     def retrieve_meta(self, recordings_only=False, verbose=False, attempts=10):
         """
@@ -166,34 +233,39 @@ class Query:
 
         data_all = {}
         while page < page_num + 1:
-            url = (
-                "https://www.xeno-canto.org/api/2/recordings?query={0}&page={1}".format(
-                    query_content, page
-                )
-            )
+            url = self._build_meta_url(page)
             n_attempts = 0
+            r = None
             while n_attempts < attempts:
                 try:
                     if verbose:
                         print(url)
                     r = request.urlopen(url)  # nosec
                     break
-                except error.HTTPError as e:
+                except (error.HTTPError, error.URLError) as e:
                     n_attempts += 1
                     if n_attempts == attempts:
                         print("An error has occurred: " + str(e))
                         print("Bad query: %s" % query_content)
+            if r is None:
+                raise RuntimeError(
+                    f"Failed to retrieve metadata after {attempts} attempts."
+                )
 
             data = json.loads(r.read().decode("UTF-8"))
             if not data_all:
                 data_all = data
             else:
                 data_all["recordings"] += data["recordings"]
-            page_num = data["numPages"]
+            page_num = int(data.get("numPages", data.get("num_pages", 1)))
             page += 1
 
-        del data_all["page"]
-        del data_all["numPages"]
+        if "page" in data_all:
+            del data_all["page"]
+        if "numPages" in data_all:
+            del data_all["numPages"]
+        if "num_pages" in data_all:
+            del data_all["num_pages"]
         data_all["numRecordings"] = len(data_all["recordings"])
         if recordings_only:
             return data_all["recordings"]
@@ -220,6 +292,8 @@ class Query:
             for curr_rec in tqdm(all_recordings, desc="process %d" % os.getpid()):
 
                 url = curr_rec["file"]
+                if url.startswith("//"):
+                    url = "https:" + url
                 name = (curr_rec["en"]).replace(" ", "")
                 track_id = curr_rec["id"]
 
@@ -235,7 +309,7 @@ class Query:
                         request.urlretrieve(url, audio_path + audio_file)  # nosec
                         downloaded.append(url)
                         break
-                    except error.HTTPError as e:
+                    except (error.HTTPError, error.URLError):
                         n_attempts += 1
                         if url and (n_attempts == attempts):
                             print("Bad url: %s" % url)
@@ -256,6 +330,8 @@ class Query:
                     f.write("kill -9 %d\n" % os.getpid())
                 isFirst = False
             url = curr_rec["file"]
+            if url.startswith("//"):
+                url = "https:" + url
             name = (curr_rec["en"]).replace(" ", "")
             track_id = curr_rec["id"]
 
@@ -271,7 +347,7 @@ class Query:
                     request.urlretrieve(url, audio_path + audio_file)  # nosec
                     downloaded.append(url)
                     break
-                except error.HTTPError as e:
+                except (error.HTTPError, error.URLError):
                     n_attempts += 1
                     if url and (n_attempts == attempts):
                         print("Bad url: %s" % url)
@@ -318,10 +394,12 @@ class Query:
         print("... finished ...")
 
     def __clean_up(self):
-        os.remove("kill_multiprocess.sh")
-        with open("failed.txt", "r") as f:
-            content = f.read()
-        if not content:
-            os.remove("failed.txt")
-        else:
-            print("... Some encountered failure to download, saved at failed.txt ...")
+        if os.path.exists("kill_multiprocess.sh"):
+            os.remove("kill_multiprocess.sh")
+        if os.path.exists("failed.txt"):
+            with open("failed.txt", "r") as f:
+                content = f.read()
+            if not content:
+                os.remove("failed.txt")
+            else:
+                print("... Some encountered failure to download, saved at failed.txt ...")

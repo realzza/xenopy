@@ -1,3 +1,31 @@
 [build-system]
-requires = ["setuptools>=42"]
+requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "xenopy"
+version = "0.1.0"
+description = "Python wrapper for xeno-canto API v3."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "GPL-3.0-only" }
+authors = [
+  { name = "Ziang Zhou" }
+]
+dependencies = [
+  "multiprocess",
+  "tqdm",
+]
+keywords = ["birds", "audio", "xeno-canto", "bioacoustics"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+  "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/realzza/xenopy"
+Repository = "https://github.com/realzza/xenopy"
+
+[tool.setuptools]
+py-modules = ["xenopy", "query", "utils"]
