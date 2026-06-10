@@ -1,16 +1,27 @@
 import argparse
 import json
 import os
-from urllib import error, request
+from urllib import error, parse, request
 
-from multiprocess import Process
 from tqdm import tqdm
 
 from utils import chunks
 
+try:
+    from multiprocess import Process
+except ImportError:  # pragma: no cover - exercised only when optional dep is absent
+    from multiprocessing import Process
+
+API_ENDPOINT = "https://xeno-canto.org/api/3/recordings"
+API_KEY_ENV_VAR = "XENO_CANTO_API_KEY"
+
 params = [
+    "en",
+    "sp",
     "gen",
     "ssp",
+    "fam",
+    "grp",
     "rec",
     "cnt",
     "loc",
@@ -35,12 +46,32 @@ params = [
 ]
 
 
+def _with_operator(operator, value):
+    value = str(value)
+    if value[:1] in ("<", ">", "="):
+        return value
+    return operator + value
+
+
+def _format_query_value(value):
+    value = str(value)
+    if any(char.isspace() for char in value) and not (
+        value.startswith('"') and value.endswith('"')
+    ):
+        value = '"' + value.replace('"', '\\"') + '"'
+    return value
+
+
 class Query:
     def __init__(
         self,
         name=None,
+        en=None,
+        sp=None,
         gen=None,
         ssp=None,
+        fam=None,
+        grp=None,
         rec=None,
         cnt=None,
         loc=None,
@@ -62,12 +93,18 @@ class Query:
         since=None,
         year=None,
         month=None,
+        api_key=None,
+        per_page=None,
     ):
         """
         params:
-            name: Can search for bird name directly. str
+            name: Convenience alias for English species name. In xeno-canto API v3 this is sent as en:"...". str
+            en: English species name.
+            sp: Species. In API v3, quoted binomials such as sp='"Larus fuscus"' are supported.
             gen: Genus. Genus is part of a species' latin name, so it is searched by default when performing a basic search (as mentioned above).
             ssp: subspecies
+            fam: family.
+            grp: animal group, e.g. birds, grasshoppers, bats, frogs, land mammals.
             rec: recordist. Search for all recordings from a particular recordist.
             cnt: country. Search for all recordings from a particular country.
             loc: location. Search for all recordings from a specific location.
@@ -103,13 +140,22 @@ class Query:
                     - since=YYYY-MM-DD, since the particular date
             year: year
             month: month. year and month tags allow you to search for recordings that were recorded on a certain date.
+            api_key: xeno-canto API v3 key. If omitted, retrieve_* reads XENO_CANTO_API_KEY from the environment.
+            per_page: optional API v3 page size.
         """
 
+        self.api_key = api_key
+        self.per_page = per_page
         self.args = {}
         if name:
-            self.args["name"] = name.replace(" ", "%20")
+            self.args["en"] = name
+        if en:
+            self.args["en"] = en
+        self.args["sp"] = sp
         self.args["gen"] = gen
         self.args["ssp"] = ssp
+        self.args["fam"] = fam
+        self.args["grp"] = grp
         self.args["rec"] = rec
         self.args["cnt"] = cnt
         self.args["loc"] = loc
@@ -122,31 +168,108 @@ class Query:
         self.args["nr"] = nr
         self.args["lic"] = lic
         self.args["q"] = q
-        self.args["q_lt"] = q_lt
-        self.args["q_gt"] = q_gt
         self.args["len"] = length
-        self.args["len_lt"] = len_lt
-        self.args["len_gt"] = len_gt
         self.args["area"] = area
         self.args["since"] = since
         self.args["year"] = year
         self.args["month"] = month
 
         query_options = {k: v for k, v in self.args.items() if v}
+        if q_lt:
+            query_options["q_lt"] = _with_operator("<", q_lt)
+        if q_gt:
+            query_options["q_gt"] = _with_operator(">", q_gt)
+        if len_lt:
+            query_options["len_lt"] = _with_operator("<", len_lt)
+        if len_gt:
+            query_options["len_gt"] = _with_operator(">", len_gt)
         assert query_options, "empty query, please add query options"
-        if name:
-            del self.args["gen"], self.args["ssp"]
-        self.query = "%20".join(
-            ["%s:%s" % (k, v) for k, v in query_options.items()]
-        ).replace("name:", "")
+        query_terms = []
+        for k, v in query_options.items():
+            tag = (
+                {"q_lt": "q", "q_gt": "q", "len_lt": "len", "len_gt": "len"}[k]
+                if k in {"q_lt", "q_gt", "len_lt", "len_gt"}
+                else k
+            )
+            query_terms.append("%s:%s" % (tag, _format_query_value(v)))
+        self.query = " ".join(query_terms)
         self.args = query_options
-        print("query:", self.query.replace("%20", " "))
+        print("query:", self.query)
 
     def _get_args(self):
         return self.args
 
     def _init_dir(self, d):
         os.makedirs(d, exist_ok=True)
+
+    def _get_api_key(self):
+        api_key = self.api_key or os.environ.get(API_KEY_ENV_VAR)
+        if not api_key:
+            raise ValueError(
+                "xeno-canto API v3 requires an API key. Pass api_key=... or set "
+                f"{API_KEY_ENV_VAR}."
+            )
+        return api_key
+
+    def _build_api_url(self, page):
+        query_params = {
+            "query": self.query,
+            "key": self._get_api_key(),
+            "page": page,
+        }
+        if self.per_page:
+            query_params["per_page"] = self.per_page
+        return API_ENDPOINT + "?" + parse.urlencode(query_params)
+
+    def _redact_url(self, url):
+        parsed = parse.urlsplit(url)
+        query_params = parse.parse_qsl(parsed.query, keep_blank_values=True)
+        redacted = [
+            (k, "***" if k == "key" else v)
+            for k, v in query_params
+        ]
+        return parse.urlunsplit(
+            parsed._replace(query=parse.urlencode(redacted))
+        )
+
+    def _read_json_url(self, url, attempts):
+        n_attempts = 0
+        while n_attempts < attempts:
+            try:
+                r = request.urlopen(url)  # nosec
+                break
+            except error.HTTPError as e:
+                body = e.read().decode("UTF-8", errors="replace")
+                n_attempts += 1
+                if n_attempts == attempts:
+                    raise RuntimeError(
+                        "xeno-canto API request failed: %s %s"
+                        % (e, body.strip())
+                    ) from e
+            except error.URLError as e:
+                n_attempts += 1
+                if n_attempts == attempts:
+                    raise RuntimeError(
+                        "xeno-canto API request failed: %s" % e
+                    ) from e
+        data = json.loads(r.read().decode("UTF-8"))
+        if "error" in data:
+            raise RuntimeError("xeno-canto API returned an error: %s" % data)
+        return data
+
+    def _download_url(self, url):
+        if url.startswith("//"):
+            url = "https:" + url
+        elif url.startswith("/"):
+            url = "https://xeno-canto.org" + url
+
+        parsed = parse.urlsplit(url)
+        query_params = parse.parse_qsl(parsed.query, keep_blank_values=True)
+        if not any(k == "key" for k, _ in query_params):
+            query_params.append(("key", self._get_api_key()))
+        return parse.urlunsplit(
+            parsed._replace(query=parse.urlencode(query_params))
+        )
 
     def retrieve_meta(self, recordings_only=False, verbose=False, attempts=10):
         """
@@ -159,41 +282,26 @@ class Query:
             data_all: [dict] containing all metafiles from the query.
         """
 
-        query_content = self.query
         print("... retrieving metadata ...")
 
         page, page_num = 1, 1
 
         data_all = {}
         while page < page_num + 1:
-            url = (
-                "https://www.xeno-canto.org/api/2/recordings?query={0}&page={1}".format(
-                    query_content, page
-                )
-            )
-            n_attempts = 0
-            while n_attempts < attempts:
-                try:
-                    if verbose:
-                        print(url)
-                    r = request.urlopen(url)  # nosec
-                    break
-                except error.HTTPError as e:
-                    n_attempts += 1
-                    if n_attempts == attempts:
-                        print("An error has occurred: " + str(e))
-                        print("Bad query: %s" % query_content)
+            url = self._build_api_url(page)
+            if verbose:
+                print(self._redact_url(url))
 
-            data = json.loads(r.read().decode("UTF-8"))
+            data = self._read_json_url(url, attempts)
             if not data_all:
                 data_all = data
             else:
                 data_all["recordings"] += data["recordings"]
-            page_num = data["numPages"]
+            page_num = int(data["numPages"])
             page += 1
 
-        del data_all["page"]
-        del data_all["numPages"]
+        data_all.pop("page", None)
+        data_all.pop("numPages", None)
         data_all["numRecordings"] = len(data_all["recordings"])
         if recordings_only:
             return data_all["recordings"]
@@ -219,7 +327,7 @@ class Query:
             problematic_urls = []
             for curr_rec in tqdm(all_recordings, desc="process %d" % os.getpid()):
 
-                url = curr_rec["file"]
+                url = self._download_url(curr_rec["file"])
                 name = (curr_rec["en"]).replace(" ", "")
                 track_id = curr_rec["id"]
 
@@ -255,7 +363,7 @@ class Query:
                 with open("kill_multiprocess.sh", "a") as f:
                     f.write("kill -9 %d\n" % os.getpid())
                 isFirst = False
-            url = curr_rec["file"]
+            url = self._download_url(curr_rec["file"])
             name = (curr_rec["en"]).replace(" ", "")
             track_id = curr_rec["id"]
 

@@ -6,7 +6,7 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/realzza/xenopy/badge)](https://www.codefactor.io/repository/github/realzza/xenopy)&nbsp;
 [![DOI](https://zenodo.org/badge/442515920.svg)](https://zenodo.org/badge/latestdoi/442515920)
 
-**`XenoPy`** is a python library that builds upon [xeno-canto API 2.0](https://xeno-canto.org/article/153).
+**`XenoPy`** is a python library that builds upon the [xeno-canto API v3](https://xeno-canto.org/explore/api).
 
 ## Install
 Install from `pip`.
@@ -18,10 +18,20 @@ Checkout the [**birdData**](https://github.com/realzza/xenopy/tree/birdData) bra
 
 ## Usage Snippet
 You can directly search for bird data for a specific species. For instance, we retrieve data for [*African Silverbill*](https://xeno-canto.org/species/Euodice-cantans) whom's `quality` better than `C` since `2020-01-01`.
+
+The xeno-canto API v3 requires an API key. You can pass it directly to `Query`, or set it once in your environment as `XENO_CANTO_API_KEY`.
+
+```bash
+export XENO_CANTO_API_KEY="your-api-key"
+```
+
 ```python
 from xenopy import Query
 
 q = Query(name="African silverbill", q_gt="C", since="2020-01-01")
+
+# Or pass the key explicitly:
+q = Query(name="African silverbill", q_gt="C", since="2020-01-01", api_key="your-api-key")
 ```
 
 ### Retrieve Metafiles
@@ -44,9 +54,13 @@ Two files will be generated while running `retrieve_recordings`, `kill_multiproc
 ## Define a `Query`
 As you can tell from the [Usage Snippet](#Usage-Snippet), defining a query is the most important step in communicating with the API. We determined the following interface to form a query based on the xeno-canto [search tips](https://xeno-canto.org/help/search).
 ```markdown
-name: Species Name. Specify the name of bird you intend to retrieve data from. Both English names and Latin names are acceptable.
+name: Convenience alias for English species name. API v3 sends this as en:"...".
+en: English species name.
+sp: Species. For a full scientific name, use a quoted binomial such as sp='"Larus fuscus"'.
 gen: Genus. Genus is part of a species' latin name, so it is searched by default when performing a basic search (as mentioned above).
 ssp: subspecies
+fam: family
+grp: animal group, e.g. birds, grasshoppers, bats, frogs, land mammals
 rec: recordist. Search for all recordings from a particular recordist.
 cnt: country. Search for all recordings from a particular country.
 loc: location. Search for all recordings from a specific location.
@@ -59,8 +73,8 @@ type: Search for recordings of a particular sound type, e.g., type='song'
 nr: number. To search for a known recording number, use the nr tag: for example nr:76967. You can also search for a range of numbers as nr:88888-88890.
 lc: license.
 q: quality ratings. 
-q_lt: quality ratings less than
-q_gt: quality ratings better than
+q_lt: quality ratings less than; sent to API v3 as q:<VALUE
+q_gt: quality ratings better than; sent to API v3 as q:>VALUE
     Usage Examples:
           Recordings are rated by quality. Quality ratings range from A (highest quality) to E (lowest quality). To search for recordings that match a certain quality rating, use the q, q_lt, and q_gt tags. For example:
             - q:A will return recordings with a quality rating of A.
@@ -68,8 +82,8 @@ q_gt: quality ratings better than
             - q_lt:C will return recordings with a quality rating of D or E.
             - q_gt:C will return recordings with a quality rating of B or A.
 len: recording length control parameter.
-len_lt: recording length less than
-len_gt: recording length greater than
+len_lt: recording length less than; sent to API v3 as len:<VALUE
+len_gt: recording length greater than; sent to API v3 as len:>VALUE
     Usage Examples:
         len:10 will return recordings with a duration of 10 seconds (with a margin of 1%, so actually between 9.9 and 10.1 seconds)
         len:10-15 will return recordings lasting between 10 and 15 seconds.
@@ -82,6 +96,8 @@ since:
         - since=YYYY-MM-DD, since the particular date
 year: year
 month: month. year and month tags allow you to search for recordings that were recorded on a certain date. 
+api_key: xeno-canto API v3 key. If omitted, retrieve_* reads XENO_CANTO_API_KEY from the environment.
+per_page: optional API v3 page size.
 ```
 
 ## Citation
@@ -113,5 +129,5 @@ If `XenoPy` is helpful in your project or research in any form, you can cite thi
 - [x] add multiprocessing downloading feature
 
 ## Open Source
-The first generation of `xenocanto` [package](https://github.com/ntivirikin/xeno-canto-py) is hard to use also inefficient. Thus I wrapped the [2.0 API](https://xeno-canto.org/article/153) version in a more straightforward and efficient interface.
+The first generation of `xenocanto` [package](https://github.com/ntivirikin/xeno-canto-py) is hard to use also inefficient. Thus I wrapped the xeno-canto API in a more straightforward and efficient interface.
 Feel free to file an issue had you encountered any bugs, or prompt a PR to `XenoPy` to join me in maintenance and optimization.
